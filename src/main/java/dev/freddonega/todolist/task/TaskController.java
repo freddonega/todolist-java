@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -55,6 +56,23 @@ public class TaskController {
         return ResponseEntity.status(HttpStatus.OK).body(tasks);
     }
 
+    @GetMapping("/{taskId}")
+    public ResponseEntity get(HttpServletRequest request, @PathVariable UUID taskId) {
+        var userId = (UUID)request.getAttribute("userId");
+
+        var task = this.taskRepository.findById(taskId).orElse(null);
+
+        if(task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task not found");
+        }
+
+        if(!task.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to get this task");
+        }
+
+        return ResponseEntity.status(HttpStatus.OK).body(task);
+    }
+
     @PutMapping("/{taskId}")
     public ResponseEntity update(@RequestBody TaskModel task, HttpServletRequest request, @PathVariable UUID taskId) {
         var userId = (UUID)request.getAttribute("userId");
@@ -74,5 +92,24 @@ public class TaskController {
         var updatedTask = this.taskRepository.save(taskExists);
 
         return ResponseEntity.status(HttpStatus.OK).body(updatedTask);
+    }
+
+    @DeleteMapping("/{taskId}")
+    public ResponseEntity delete(HttpServletRequest request, @PathVariable UUID taskId) {
+        var userId = (UUID)request.getAttribute("userId");
+
+        var taskExists = this.taskRepository.findById(taskId).orElse(null);
+
+        if(taskExists == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Task not found");
+        }
+
+        if(!taskExists.getUserId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You don't have permission to delete this task");
+        }
+
+        this.taskRepository.delete(taskExists);
+
+        return ResponseEntity.status(HttpStatus.OK).body("Task deleted");
     }
 }
